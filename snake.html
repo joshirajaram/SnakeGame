@@ -1,0 +1,253 @@
+<html>
+    <head>
+        <title>Snake Game</title>
+    </head>
+    <body style="background-color: bisque;">
+        <h1 style="text-align: center; font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;">Welcome to the Snake Game!</h1>
+        <canvas id="SnakeGame-Canvas" width="520" height="520" style="margin-top: 30px; display: block; padding-left: 0; padding-right: 0; margin-left: auto; margin-right: auto;"></canvas>
+        <div id='Score' style="text-align: center; display: inline; color: darkgreen; padding-bottom: 10px; padding-top: 10px;"></div>
+        <div id='GameOver' style="text-align: center; display: inline; color: darkred; padding-bottom: 10px; padding-top: 10px;"></div>
+    </body>
+    <script type="text/javascript">
+        var body = [];
+        var width = 520;
+        var height = 520;
+        var canvas = document.getElementById('SnakeGame-Canvas');
+        var ctx = canvas.getContext('2d');
+        ctx.fillStyle = "#8ECC39";
+        ctx.fillRect(0, 0, width, height);
+
+        var N = 20;
+        var cellSize = width/N;
+
+        var matrix = new Array(N);
+        for(var i=0;i<N;i++)
+        {
+            matrix[i] = new Array(N);
+        }
+
+        function drawCell(i, j)
+        {
+            if((i+j)%2===0)
+            {
+                ctx.fillStyle = "#8ECC39";
+            }
+            else
+            {
+                ctx.fillStyle = "#A7D948";
+            }
+            ctx.fillRect(cellSize*i, cellSize*j, cellSize, cellSize);
+        }
+
+        for(var i=0; i<N; i++)
+        {
+            for(var j=0; j<N;j++)
+            {
+                matrix[i][j] = 0;
+                drawCell(i,j);
+            }
+        }
+
+
+        // Initial Snake length
+        // body.push([1 + N/2, N/2]);
+        // body.push([N/2, N/2]);
+        // body.push([-1 + N/2, N/2]);
+
+        body.push([1+ N/2,N/2]);
+		body.push([N/2,N/2]);
+		body.push([-1+N/2,N/2]);
+
+        var eyeImage = new Image();
+        eyeImage.src = 'https://i.imgur.com/6jLbz7l.png';
+
+        var foodImage = new Image();
+        foodImage.src = 'https://i.imgur.com/88saChB.png';
+
+        var counter = 0;
+        var foodX = 0;
+        var foodY = 0;
+        var score = 0;
+
+        function generateFood() 
+        {
+            var success = false;
+            while(!success)
+            {
+                foodX = parseInt(Math.random()*N);
+                foodY = parseInt(Math.random()*N);
+
+                success = true;
+                for(var i=0;i<body.length;i++)
+                {
+                    if(body[i][0]==foodX && body[i][1]==foodY)
+                    {
+                        success = false;
+                    }
+                }
+            }
+        }
+
+        generateFood();
+
+        function playAudio()
+        {
+            var audio = new Audio('https://www.soundjay.com/switch/switch-1.wav');
+            audio.play();
+        }
+
+        function playConsume()
+        {
+            score++;
+            var audio = new Audio('https://www.soundjay.com/button/button-3.wav');
+            audio.play();
+        }
+
+        var state = 0; // 0 -> right, 1 -> down, 2 -> left, 3 -> up
+        var intervalID = null;
+        var gameOver = false;
+
+        function handleKey(e)
+        {
+            var play = false;
+            e = e || window.event;
+            if(e.keyCode == '37' && state!=0 && state!=2)
+            {
+                // Left Arrow Key
+                state=2;
+                play=true;
+            }
+            if(e.keyCode == '38' && state!=1 && state!=3)
+            {
+                // Up Arrow Key
+                state=3;
+                play=true;
+            }
+            if(e.keyCode == '39' && state!=0 && state!=2)
+            {
+                // Right Arrow Key
+                state=0;
+                play=true;
+            }
+            if(e.keyCode == '40' && state!=1 && state!=3)
+            {
+                // Down Arrow Key
+                state=1;
+                play=true;
+            }
+            if(play)
+                playAudio();
+        }
+
+        function checkGameOver()
+        {
+            var face = body[0];
+            
+            // If face is intersecting with any other part of body
+            for(var i=1;i<body.length;i++)
+            {
+                if(face[0]==body[i][0] && face[1]==body[i][1])
+                {
+                    gameOver = true;
+                }
+            }
+
+            // If face touches any edge of the canvas
+            if(face[0]<0 || face[0]>=N || face[1]<0 || face[1]>=N)
+                gameOver=true;
+        }
+
+        document.onkeydown = handleKey;
+
+        function update() 
+        {
+            checkGameOver();
+
+            if(gameOver)
+            {
+                clearInterval(intervalID);
+                var gameOverDiv = document.getElementById('GameOver');
+                gameOverDiv.innerHTML = `<h1>Game Over!!</h1><h2>Refresh to try again!</h2>`;
+            }
+
+            var scoreDiv = document.getElementById('Score');
+            scoreDiv.innerHTML = `<h2>Score: ${score}</h2>`;
+
+            counter++;
+            var increase = false;
+
+            // When head of snake == location of food
+            if(body[0][0]==foodX && body[0][1]==foodY)
+            {
+                generateFood();
+                playConsume();
+                increase = true;
+            }
+
+            // Redraw canvas
+            for(var i=0; i<N; i++)
+            {
+                for(var j=0; j<N;j++)
+                {
+                    matrix[i][j] = 0;
+                    drawCell(i,j);
+                }
+            }
+
+            ctx.drawImage(foodImage, foodX*cellSize, foodY*cellSize, cellSize, cellSize);
+
+            // Draw Snake body
+            for( var i=0;i<body.length;i++)
+            {
+                ctx.fillStyle = ("#527DF9");
+                ctx.fillRect(cellSize*body[i][0], cellSize*body[i][1], cellSize, cellSize);
+
+                if(i==0)
+                {
+                    var marginX = cellSize/3;
+                    var marginY = cellSize/3;
+
+                    if(state==0 || state==2)
+                    {
+                        marginX=0;
+                    }
+                    else if(state==1 || state==3)
+                    {
+                        marginY=0;
+                    }
+
+                    // width of eye image is 28
+                    ctx.drawImage(eyeImage, 0, 28*(counter%9), cellSize, cellSize, cellSize*body[i][0]+marginX, cellSize*body[i][1]+marginY, cellSize, cellSize);
+                    ctx.drawImage(eyeImage, 0, 28*(counter%9), cellSize, cellSize, cellSize*body[i][0]-marginX, cellSize*body[i][1]-marginY, cellSize, cellSize);
+                }
+            }
+            var x = 0, y = 0;
+            if(state==0)
+            {
+                x++;
+            }
+            else if(state==1)
+            {
+                y++;
+            }
+            else if(state==2)
+            {
+                x--;
+            }
+            else if(state==3)
+            {
+                y--;
+            }
+
+            var arr = [body[0][0]+x, body[0][1]+y];
+
+            // Inserts at 0 index
+            body.splice(0,0,arr);
+
+            if(!increase)
+                body.pop();
+        }
+            
+        intervalID = setInterval(update, 300);
+    </script>
+</html>
